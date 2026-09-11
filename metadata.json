@@ -1,0 +1,6 @@
+{
+  "name": "Nova Menú",
+  "description": "App móvil para realizar pedidos de menú diario en Fogón Gastronómico de Planta Nova con autenticación por correo y sincronización con Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
