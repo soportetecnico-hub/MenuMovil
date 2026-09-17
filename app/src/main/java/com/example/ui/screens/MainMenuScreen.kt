@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.NovaBadgeBg
@@ -127,6 +128,37 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.orderMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = NovaGreenSync.copy(alpha = 0.15f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = NovaGreenSync,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = uiState.orderMessage ?: "",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NovaGreenSync,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // User Info Banner
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -156,17 +188,23 @@ fun MainMenuScreen(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
+                    val currentEmp = uiState.currentEmpleado ?: uiState.selectedEmpleado
+
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Sesión Activa",
-                            fontSize = 11.sp,
-                            color = NovaTextMuted
+                            text = currentEmp?.nombreCompleto ?: "Empleado Planta Nova",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NovaTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = uiState.userEmail ?: "usuario@nova.pe",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = NovaTextPrimary
+                            text = if (currentEmp != null) "${currentEmp.area} • ${uiState.userEmail ?: currentEmp.email}" else (uiState.userEmail ?: "usuario@nova.pe"),
+                            fontSize = 11.sp,
+                            color = NovaTextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -180,64 +218,61 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Gastronomy Branding Card
+            // Discreet Service & Location Card (Subdued Fogón Gastronómico)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = NovaCardBg),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    brush = Brush.linearGradient(listOf(NovaCardBorder, NovaCardBorder))
+                )
             ) {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(NovaRedDark, NovaRedPrimary)
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .padding(20.dp)
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = "Fuego",
-                                    tint = NovaFlameOrange,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "MENÚ DEL DÍA",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    letterSpacing = 1.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.LocalFireDepartment,
+                            contentDescription = "Fuego",
+                            tint = NovaFlameOrange.copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
                             Text(
                                 text = "Fogón Gastronómico",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = NovaTextSecondary
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Selección fresca y balanceada para el personal de Planta Nova.",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.9f)
+                                text = "Comedor Planta Nova • Menú diario",
+                                fontSize = 11.sp,
+                                color = NovaTextMuted
                             )
                         }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = NovaCardBgElevated
+                    ) {
+                        Text(
+                            text = "Planta Nova",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = NovaTextMuted,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = "Opciones Principales",
@@ -249,66 +284,97 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // BUTTON 1: "HACER PEDIDO"
+            // BUTTON 1: "HACER PEDIDO" - RESALTADO (HERO PRIMARY ACTION)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { viewModel.navigateTo(AppScreen.ORDER_FORM) }
                     .testTag("btn_hacer_pedido"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = NovaCardBg),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                 border = CardDefaults.outlinedCardBorder().copy(
-                    brush = Brush.horizontalGradient(listOf(NovaRedBright, NovaRedDark))
+                    brush = Brush.horizontalGradient(listOf(Color(0xFFFF5252), NovaRedBright))
                 )
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(NovaRedBright, NovaRedDark)
-                                ),
-                                shape = CircleShape
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(NovaRedPrimary, Color(0xFFD32F2F), Color(0xFFB71C1C))
                             ),
-                        contentAlignment = Alignment.Center
+                            shape = RoundedCornerShape(18.dp)
+                        )
+                        .padding(22.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.RestaurantMenu,
-                            contentDescription = "Hacer Pedido",
-                            tint = Color.White,
-                            modifier = Modifier.size(30.dp)
-                        )
+                        // High-contrast white circular container with fiery red icon
+                        Box(
+                            modifier = Modifier
+                                .size(58.dp)
+                                .background(Color.White, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RestaurantMenu,
+                                contentDescription = "Hacer Pedido",
+                                tint = NovaRedPrimary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "HACER PEDIDO",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.White.copy(alpha = 0.25f)
+                                ) {
+                                    Text(
+                                        text = "HOY",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Elige tu plato de hoy (Criollo, Saludable o Norteño)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.White.copy(alpha = 0.95f)
+                            )
+                        }
+
+                        // Prominent circle arrow button
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = "Ir a hacer pedido",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "HACER PEDIDO",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NovaTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Elige tu plato de hoy (Criollo, Saludable o Norteño)",
-                            fontSize = 12.sp,
-                            color = NovaTextSecondary
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Ir a hacer pedido",
-                        tint = NovaRedBright,
-                        modifier = Modifier.size(24.dp)
-                    )
                 }
             }
 
@@ -468,6 +534,11 @@ fun MainMenuScreen(
                     color = NovaGreenSync
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Developed by Vallumi-System credit
+            com.example.ui.components.VallumiFooter()
         }
     }
 }

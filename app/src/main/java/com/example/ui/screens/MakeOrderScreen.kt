@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
 import android.app.DatePickerDialog
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,18 +22,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -39,8 +49,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,7 +83,9 @@ import com.example.ui.theme.NovaTextSecondary
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.MenuUiState
 import com.example.ui.viewmodel.MenuViewModel
+import com.example.util.CalendarioLaboralHelper
 import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun MakeOrderScreen(
@@ -84,7 +94,6 @@ fun MakeOrderScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var employeeDropdownExpanded by remember { mutableStateOf(false) }
 
     // DatePicker setup
     val calendar = remember { Calendar.getInstance() }
@@ -92,8 +101,30 @@ fun MakeOrderScreen(
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
-                val formattedDate = String.format("%02d / %02d / %04d", dayOfMonth, month + 1, year)
-                viewModel.setFechaMenu(formattedDate)
+                val selectedCal = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                if (!CalendarioLaboralHelper.esDiaHabil(selectedCal)) {
+                    val motivo = CalendarioLaboralHelper.obtenerDescripcionNoHabil(selectedCal)
+                    val proxHabil = CalendarioLaboralHelper.obtenerProximoDiaHabil(selectedCal)
+                    val fechaHabilStr = CalendarioLaboralHelper.formatFecha(proxHabil)
+                    Toast.makeText(
+                        context,
+                        "Sábados, domingos y feriados no laborables ($motivo). Ajustado al día hábil más cercano: $fechaHabilStr",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    viewModel.setFechaMenu(fechaHabilStr)
+                } else {
+                    val formattedDate = String.format("%02d / %02d / %04d", dayOfMonth, month + 1, year)
+                    viewModel.setFechaMenu(formattedDate)
+                }
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
@@ -158,210 +189,173 @@ fun MakeOrderScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // HEADER BANNER: MENÚ DEL DÍA - Fogón Gastronómico - Planta Nova
-            Card(
+            // FIELD 1: Empleado Validado Automáticamente por Correo
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.PersonOutline,
+                        contentDescription = "Empleado",
+                        tint = NovaRedBright,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Empleado (Validado en BD):",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = NovaTextPrimary
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1B382B)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(NovaGreenSync, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Firestore BD",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = NovaGreenSync
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Verified Employee Card (Auto-filled by Authenticated Email)
+            val currentEmp = uiState.currentEmpleado ?: uiState.selectedEmpleado
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("employee_verified_card"),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = NovaCardBg),
+                border = CardDefaults.outlinedCardBorder().copy(
+                    brush = Brush.linearGradient(listOf(NovaCardBorder, NovaCardBorder))
+                )
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(NovaRedDark, Color(0xFF9E0B0F))
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .padding(14.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(NovaCardBgElevated, CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = "Fuego",
-                                tint = NovaFlameOrange,
-                                modifier = Modifier.size(28.dp)
+                                imageVector = Icons.Default.PersonOutline,
+                                contentDescription = "Empleado",
+                                tint = NovaRedBright,
+                                modifier = Modifier.size(22.dp)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "MENÚ DEL DÍA",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    letterSpacing = 0.8.sp
-                                )
-                                Text(
-                                    text = "Fogón Gastronómico",
-                                    fontSize = 19.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
                         }
 
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color(0xFF3E0A0C)
-                        ) {
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Planta Nova",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFFFFCDD2),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                text = currentEmp?.nombreCompleto ?: "Carlos Alberto Mendoza Quispe",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NovaTextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "DNI: ${currentEmp?.dni ?: "45892147"} • ${currentEmp?.area ?: "Producción Metalmecánica"}",
+                                fontSize = 12.sp,
+                                color = NovaTextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            // FIELD 1: Selecciona tu Empleado
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.PersonOutline,
-                    contentDescription = "Empleado",
-                    tint = NovaRedBright,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Selecciona tu Empleado:",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NovaTextPrimary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Employee Dropdown Trigger Card
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { employeeDropdownExpanded = true }
-                        .testTag("employee_dropdown_trigger"),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = NovaCardBg),
-                    border = CardDefaults.outlinedCardBorder().copy(
-                        brush = Brush.linearGradient(listOf(NovaCardBorder, NovaCardBorder))
-                    )
-                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 13.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .background(NovaCardBgElevated, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = uiState.selectedEmpleado?.displayLabel
-                                ?: "Carlos Alberto Mendoza Quispe - Producción Metalmecánica",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = NovaTextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
+                            text = "Correo verificado:",
+                            fontSize = 11.sp,
+                            color = NovaTextMuted
                         )
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Abrir lista de empleados",
-                            tint = NovaTextSecondary,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            text = currentEmp?.email ?: uiState.userEmail ?: "soporte_tecnico@nova.pe",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = NovaTextSecondary
                         )
                     }
                 }
-
-                // Dropdown Menu
-                DropdownMenu(
-                    expanded = employeeDropdownExpanded,
-                    onDismissRequest = { employeeDropdownExpanded = false },
-                    modifier = Modifier
-                        .background(NovaCardBgElevated)
-                        .border(1.dp, NovaCardBorder, RoundedCornerShape(8.dp))
-                ) {
-                    uiState.empleados.forEach { emp ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(
-                                        text = emp.nombreCompleto,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = NovaTextPrimary
-                                    )
-                                    Text(
-                                        text = "DNI: ${emp.dni} • ${emp.area}",
-                                        fontSize = 11.sp,
-                                        color = NovaTextMuted
-                                    )
-                                }
-                            },
-                            onClick = {
-                                viewModel.selectEmpleado(emp)
-                                employeeDropdownExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Employee sub-info row (DNI & Area)
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "DNI: ${uiState.selectedEmpleado?.dni ?: "45892147"}",
-                    fontSize = 12.sp,
-                    color = NovaTextMuted
-                )
-                Text(
-                    text = uiState.selectedEmpleado?.area ?: "Producción Metalmecánica",
-                    fontSize = 12.sp,
-                    color = NovaTextMuted
-                )
             }
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // FIELD 2: Fecha de Menú
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = "Fecha",
-                    tint = NovaRedBright,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
+            // FIELD 2: Fecha de Menú Seleccionada
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = "Fecha",
+                        tint = NovaRedBright,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Fecha de Menú:",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = NovaTextPrimary
+                    )
+                }
+
                 Text(
-                    text = "Fecha de Menú:",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NovaTextPrimary
+                    text = "Menú Mensual Firestore",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = NovaGreenSync
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Date picker trigger card
+            // Date picker trigger card with calendar picker
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -376,28 +370,177 @@ fun MakeOrderScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = uiState.fechaMenu,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NovaTextPrimary
-                    )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = uiState.nombreDiaSemana.ifEmpty { "Día Hábil" }.uppercase(),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = NovaRedBright,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = NovaGreenSync.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Día Hábil (L - V)",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = NovaGreenSync,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = uiState.fechaMenu,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NovaTextPrimary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Cambiar fecha",
+                            fontSize = 11.sp,
+                            color = NovaTextMuted
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Seleccionar fecha en calendario",
+                            tint = NovaTextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // CONTROLES DE NAVEGACIÓN DE FECHA: RETROCEDER Y AVANZAR FECHA (RESALTADOS EN ROJO)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón Retroceder Fecha (Resaltado en Rojo)
+                Button(
+                    onClick = { viewModel.retrocederDia() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .testTag("btn_retroceder_fecha"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NovaRedPrimary,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 1.dp)
+                ) {
                     Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = "Seleccionar fecha",
-                        tint = NovaTextMuted,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Retroceder fecha",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Día Anterior",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                // Botón Avanzar Fecha (Resaltado en Rojo)
+                Button(
+                    onClick = { viewModel.avanzarDia() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .testTag("btn_avanzar_fecha"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NovaRedPrimary,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp, pressedElevation = 1.dp)
+                ) {
+                    Text(
+                        text = "Día Siguiente",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Avanzar fecha",
+                        tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // FIELD 3: Elige tu plato de Fogón Gastronómico
+            // INDICADOR DEL ESTADO DEL DÍA: 1 MENÚ O NINGÚN MENÚ
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (uiState.selectedOpcion != null) NovaGreenSync.copy(alpha = 0.12f) else NovaCardBgElevated,
+                border = BorderStroke(
+                    1.dp,
+                    if (uiState.selectedOpcion != null) NovaGreenSync.copy(alpha = 0.4f) else NovaCardBorder
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("day_selection_status")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (uiState.selectedOpcion != null) Icons.Default.CheckCircle else Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = if (uiState.selectedOpcion != null) NovaGreenSync else NovaTextMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (uiState.selectedOpcion != null) {
+                                "Menú elegido hoy: ${uiState.selectedOpcion.titulo}"
+                            } else {
+                                "Sin menú para este día (0 platos)"
+                            },
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.selectedOpcion != null) NovaGreenSync else NovaTextPrimary
+                        )
+                        Text(
+                            text = if (uiState.selectedOpcion != null) {
+                                "Toca el check para desmarcar y dejar este día sin menú."
+                            } else {
+                                "Marca con el check una opción si deseas menú hoy, o déjalo sin marcar."
+                            },
+                            fontSize = 11.sp,
+                            color = NovaTextSecondary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // FIELD 3: Elige tu plato de Fogón Gastronómico (SELECCIÓN POR CHECK)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -409,17 +552,33 @@ fun MakeOrderScreen(
                     fontWeight = FontWeight.Medium,
                     color = NovaTextPrimary
                 )
-                Text(
-                    text = "${uiState.menuOpciones.size} opciones",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = NovaRedGlow
-                )
+                if (uiState.isLoadingMenuDia) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            color = NovaRedBright,
+                            modifier = Modifier.size(12.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Cargando menú...",
+                            fontSize = 11.sp,
+                            color = NovaTextMuted
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "${uiState.menuOpciones.size} opciones",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = NovaRedGlow
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Options List
+            // Options List (SELECCIÓN POR CHECK: permite marcar 1 o desmarcar para ningún menú al día)
             uiState.menuOpciones.forEach { opcion ->
                 val isSelected = uiState.selectedOpcion?.id == opcion.id
 
@@ -427,13 +586,14 @@ fun MakeOrderScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 5.dp)
-                        .clickable { viewModel.selectOpcion(opcion) }
+                        .clickable { viewModel.toggleOpcionDia(opcion) }
                         .testTag("option_card_${opcion.id}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) Color(0xFF1E1416) else NovaCardBg
                     ),
-                    border = CardDefaults.outlinedCardBorder().copy(
+                    border = BorderStroke(
+                        width = if (isSelected) 1.5.dp else 1.dp,
                         brush = Brush.linearGradient(
                             if (isSelected) listOf(NovaRedBright, NovaRedDark) else listOf(NovaCardBorder, NovaCardBorder)
                         )
@@ -463,14 +623,16 @@ fun MakeOrderScreen(
 
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { viewModel.selectOpcion(opcion) },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = NovaRedBright,
-                                unselectedColor = NovaTextMuted
+                        // Checkbox para selección granular (marca o desmarca)
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { viewModel.toggleOpcionDia(opcion) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = NovaRedBright,
+                                uncheckedColor = NovaTextMuted,
+                                checkmarkColor = Color.White
                             ),
-                            modifier = Modifier.testTag("radio_button_${opcion.id}")
+                            modifier = Modifier.testTag("checkbox_option_${opcion.id}")
                         )
                     }
                 }
@@ -527,19 +689,22 @@ fun MakeOrderScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ACTION BUTTON: "TERMINAR PEDIDO" / "Confirmar Pedido (Persistir en Firebase)"
+            // ACTION BUTTON: "TERMINAR PEDIDO" CON CONTEO DE ELECCIONES DEL MES (Persistir en Firestore)
+            val total = uiState.totalEleccionesMes
             Button(
                 onClick = { viewModel.terminarPedido() },
-                enabled = !uiState.isSubmittingOrder,
+                enabled = !uiState.isSubmittingOrder && total > 0,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = NovaRedPrimary,
-                    contentColor = Color.White
+                    disabledContainerColor = NovaCardBgElevated,
+                    contentColor = Color.White,
+                    disabledContentColor = NovaTextMuted
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("btn_terminar_pedido")
+                    .height(54.dp)
+                    .testTag("btn_enviar_pedido")
             ) {
                 if (uiState.isSubmittingOrder) {
                     CircularProgressIndicator(
@@ -549,7 +714,7 @@ fun MakeOrderScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Guardando en Firestore...",
+                        text = "Registrando en Firestore...",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -557,21 +722,29 @@ fun MakeOrderScreen(
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Enviar Pedido",
-                        tint = Color.White,
+                        tint = if (total > 0) Color.White else NovaTextMuted,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "TERMINAR PEDIDO",
+                            text = if (total > 0) {
+                                "ENVIAR PEDIDO ($total ${if (total == 1) "ELECCIÓN" else "ELECCIONES"})"
+                            } else {
+                                "SELECCIONA AL MENOS 1 MENÚ"
+                            },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
                         Text(
-                            text = "Confirmar Pedido (Persistir en Firebase)",
+                            text = if (total > 0) {
+                                "Registrar pedido en base de datos Firestore y persistir para futuros reportes"
+                            } else {
+                                "Marca con el check los días que desees pedir"
+                            },
                             fontSize = 10.sp,
-                            color = Color.White.copy(alpha = 0.85f)
+                            color = if (total > 0) Color.White.copy(alpha = 0.85f) else NovaTextMuted
                         )
                     }
                 }
@@ -598,6 +771,11 @@ fun MakeOrderScreen(
                     color = NovaTextMuted
                 )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Developed by Vallumi-System credit
+            com.example.ui.components.VallumiFooter()
 
             Spacer(modifier = Modifier.height(10.dp))
         }

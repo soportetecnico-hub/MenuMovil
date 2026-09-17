@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
@@ -216,6 +218,11 @@ fun OrderSummaryScreen(
                     ) {
                         Text("Volver al Menú Principal", fontSize = 13.sp)
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Developed by Vallumi-System credit
+                    com.example.ui.components.VallumiFooter()
                 }
             } else {
                 // ORDER SUMMARY TICKET (ACTIVE ORDER FROM FIRESTORE)
@@ -343,77 +350,176 @@ fun OrderSummaryScreen(
                         HorizontalDivider(color = NovaCardBorder, thickness = 1.dp)
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Fecha de Menú
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        // Resumen de Elecciones del Mes
+                        if (pedido.elecciones.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = NovaRedBright,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "RESUMEN DE ELECCIONES:",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NovaRedGlow
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = NovaGreenSync.copy(alpha = 0.18f)
+                                ) {
+                                    Text(
+                                        text = "${pedido.totalElecciones} ${if (pedido.totalElecciones == 1) "elección" else "elecciones"}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NovaGreenSync,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Lista de elecciones del mes
+                            pedido.elecciones.forEach { eleccion ->
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = NovaCardBgElevated,
+                                    border = BorderStroke(1.dp, NovaCardBorder),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Elegido",
+                                                    tint = NovaGreenSync,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = eleccion.fecha,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = NovaRedBright
+                                                )
+                                            }
+                                            Text(
+                                                text = eleccion.diaSemana.uppercase(),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = NovaTextMuted
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = eleccion.platoTitulo,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = NovaTextPrimary
+                                        )
+
+                                        if (eleccion.platoDescripcion.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = eleccion.platoDescripcion,
+                                                fontSize = 11.sp,
+                                                color = NovaTextSecondary,
+                                                lineHeight = 15.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Vista tradicional para pedidos individuales
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = NovaRedBright,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Fecha de Menú:",
+                                        fontSize = 12.sp,
+                                        color = NovaTextSecondary
+                                    )
+                                }
+                                Text(
+                                    text = pedido.fechaMenu,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NovaTextPrimary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = NovaCardBorder, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.CalendarToday,
+                                    imageVector = Icons.Default.Restaurant,
                                     contentDescription = null,
                                     tint = NovaRedBright,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Fecha de Menú:",
-                                    fontSize = 12.sp,
-                                    color = NovaTextSecondary
+                                    text = "PLATO ELEGIDO",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NovaRedGlow,
+                                    letterSpacing = 0.5.sp
                                 )
                             }
-                            Text(
-                                text = pedido.fechaMenu,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NovaTextPrimary
-                            )
-                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = NovaCardBorder, thickness = 1.dp)
-                        Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                        // Plato Seleccionado
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Restaurant,
-                                contentDescription = null,
-                                tint = NovaRedBright,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "PLATO ELEGIDO",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = NovaRedGlow,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = NovaCardBgElevated,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = pedido.opcionTitulo,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = NovaRedGlow
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = pedido.opcionDescripcion,
-                                    fontSize = 12.sp,
-                                    color = NovaTextSecondary,
-                                    lineHeight = 16.sp
-                                )
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = NovaCardBgElevated,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = pedido.opcionTitulo,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = NovaRedGlow
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = pedido.opcionDescripcion,
+                                        fontSize = 12.sp,
+                                        color = NovaTextSecondary,
+                                        lineHeight = 16.sp
+                                    )
+                                }
                             }
                         }
 
@@ -463,6 +569,35 @@ fun OrderSummaryScreen(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
+
+                // CONFIRMAR PEDIDO BUTTON
+                Button(
+                    onClick = { viewModel.confirmarPedido() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NovaGreenSync,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("btn_confirmar_pedido")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "CONFIRMAR PEDIDO",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Actions
                 Row(
@@ -555,6 +690,11 @@ fun OrderSummaryScreen(
                         color = NovaTextMuted
                     )
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Developed by Vallumi-System credit
+                com.example.ui.components.VallumiFooter()
             }
         }
     }

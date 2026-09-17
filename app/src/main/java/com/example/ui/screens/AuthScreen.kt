@@ -173,9 +173,9 @@ fun AuthScreen(
 
                     Text(
                         text = if (uiState.isRegisterMode)
-                            "Crea tu cuenta con tu correo corporativo"
+                            "Ingresa tu correo corporativo. Se validará tu registro en la BD de empleados de Planta Nova."
                         else
-                            "Ingresa con tu correo y contraseña registrados en Firebase",
+                            "Ingresa con tu correo corporativo. El sistema validará tu identidad en la BD Firestore.",
                         fontSize = 12.sp,
                         color = NovaTextSecondary,
                         textAlign = TextAlign.Center
@@ -362,6 +362,11 @@ fun AuthScreen(
                     color = NovaTextMuted
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Developed by Vallumi-System credit
+            com.example.ui.components.VallumiFooter()
         }
     }
 }
