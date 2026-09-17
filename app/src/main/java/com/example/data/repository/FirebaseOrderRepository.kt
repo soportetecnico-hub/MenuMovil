@@ -523,6 +523,24 @@ class FirebaseOrderRepository(private val context: Context) {
 
     // --- Orders (Firestore + Local Persistence) ---
 
+    fun hasInternetConnection(): Boolean {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            if (connectivityManager != null) {
+                val network = connectivityManager.activeNetwork ?: return false
+                val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+                capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                    capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun guardarPedido(pedido: Pedido): Result<Pedido> {
         val orderId = if (pedido.id.isNotBlank()) pedido.id else "PED-${System.currentTimeMillis() % 1000000}"
         val pedidoToSave = pedido.copy(id = orderId)

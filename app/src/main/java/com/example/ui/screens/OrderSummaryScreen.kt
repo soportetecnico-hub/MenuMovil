@@ -130,6 +130,38 @@ fun OrderSummaryScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (uiState.orderMessage != null) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = NovaCardBgElevated),
+                    border = BorderStroke(1.dp, NovaCardBorder),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = NovaRedBright,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = uiState.orderMessage ?: "",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = NovaTextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             if (uiState.isLoadingSummary) {
                 Box(
                     modifier = Modifier

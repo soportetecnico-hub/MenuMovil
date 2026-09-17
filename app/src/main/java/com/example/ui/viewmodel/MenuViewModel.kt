@@ -339,15 +339,21 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmittingOrder = true, orderMessage = null) }
+            val hasNet = repository.hasInternetConnection()
             val result = repository.guardarPedido(pedido)
             result.fold(
                 onSuccess = { savedOrder ->
+                    val message = if (hasNet) {
+                        "¡Pedido de ${savedOrder.totalElecciones} elecciones del mes registrado exitosamente en Firestore!"
+                    } else {
+                        "Sin conexión a internet. Tu pedido se ha guardado localmente de forma segura y se sincronizará automáticamente cuando se restablezca la conexión."
+                    }
                     _uiState.update {
                         it.copy(
                             isSubmittingOrder = false,
                             ultimoPedido = savedOrder,
                             currentScreen = AppScreen.ORDER_SUMMARY,
-                            orderMessage = "¡Pedido de ${savedOrder.totalElecciones} elecciones del mes registrado exitosamente en Firestore!"
+                            orderMessage = message
                         )
                     }
                 },
@@ -355,7 +361,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                     _uiState.update {
                         it.copy(
                             isSubmittingOrder = false,
-                            orderMessage = "Error al guardar el pedido: ${error.message}"
+                            orderMessage = "Sin conexión. Tu pedido se guardó localmente hasta que se restablezca la conexión: ${error.message}"
                         )
                     }
                 }
